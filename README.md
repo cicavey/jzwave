@@ -19,6 +19,9 @@ jzwave has been able to communicate with the following devices:
 ## Building
 jzwave requires Gradle to build
 
+1. Optional: ```gradle eclipse``` to generate Eclipse classpath files with Gradle dependencies
+2. ```gradle build```
+
 ## Transports
 ### socat
 Useful if the controller is not connected to the development machine. Utilizing 'socat', create a TCP bridge from remote serial device to socket.
