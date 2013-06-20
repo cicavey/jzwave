@@ -2,7 +2,7 @@
 classes
 dist
 build
-config
+/config
 .gradle
 .classpath
 .settings
