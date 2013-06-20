@@ -1,0 +1,49 @@
+apply plugin: 'groovy'
+apply plugin: 'java'
+apply plugin: 'eclipse'
+
+buildscript {
+	repositories {
+		mavenCentral()
+	}
+
+	dependencies {
+		classpath 'nl.javadude.gradle.plugins:license-gradle-plugin:0.5.0'
+	}
+}
+
+apply plugin: 'license'
+license {
+    header rootProject.file('LICENSE.header')
+	ext.year = '2012-' + Calendar.getInstance().get(Calendar.YEAR)
+    ext.name = 'Chris Cavey'
+    ext.email = 'chris-jzwave@rauros.net'
+	ext.product = 'jzwave'
+}
+
+task openzwaveConfigExport(type: net.rauros.groovy.ExportConfig)
+compileJava.dependsOn(openzwaveConfigExport)
+
+repositories {
+	flatDir {
+		dirs 'lib'
+	}
+	mavenCentral()
+}
+
+dependencies {
+	compile group: 'com.neuronrobotics', name: 'nrjavaserial', version: '3.8.+'
+	compile group: 'com.google.guava', name: 'guava', version: '+'
+	compile group: 'org.slf4j', name: 'slf4j-api', version: '+'
+	compile group: 'joda-time', name: 'joda-time', version: '+'
+	compile group: 'ch.qos.logback', name: 'logback-core', version: '+'
+	compile group: 'ch.qos.logback', name: 'logback-classic', version: '+'
+	compile group: 'ch.qos.logback', name: 'logback-access', version: '+'
+	testCompile group: 'junit', name: 'junit', version: '4.+'
+}
+
+task(zwaveListen, dependsOn: 'classes', type: JavaExec) {
+	main = 'net.rauros.jzwave.junit.TestEnumerate'
+	classpath = sourceSets.main.runtimeClasspath + sourceSets.test.runtimeClasspath
+	args "$transport"
+}
