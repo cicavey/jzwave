@@ -1,5 +1,13 @@
+version = '0.0.1'
+group = 'net.rauros.jzwave'
+ext.description = "Java Z-Wave"
+ext.author = 'Chris Cavey'
+ext.email = 'chris-jzwave@rauros.net'
+ext.startYear = '2012'
+
 apply plugin: 'groovy'
 apply plugin: 'java'
+apply plugin: 'osgi'
 apply plugin: 'eclipse'
 
 buildscript {
@@ -15,10 +23,10 @@ buildscript {
 apply plugin: 'license'
 license {
     header rootProject.file('LICENSE.header')
-	ext.year = '2012-' + Calendar.getInstance().get(Calendar.YEAR)
-    ext.name = 'Chris Cavey'
-    ext.email = 'chris-jzwave@rauros.net'
-	ext.product = 'jzwave'
+	ext.year = project.ext.startYear + '-' + Calendar.getInstance().get(Calendar.YEAR)
+    ext.name = project.ext.author
+    ext.email = project.ext.email
+	ext.product = project.name
 }
 
 task openzwaveConfigExport(type: net.rauros.groovy.ExportConfig)
@@ -41,10 +49,21 @@ dependencies {
 	compile group: 'ch.qos.logback', name: 'logback-access', version: '+'
 	testCompile group: 'junit', name: 'junit', version: '4.+'
 }
-/*
+
+jar {
+	manifest { // the manifest of the default jar is of type OsgiManifest
+		instruction '-nouses', 'true'
+		instruction 'Bundle-Symbolic', project.group
+		instruction 'Bundle-Vendor', project.name
+		instruction 'Bundle-Description', project.ext.description
+		instruction 'Import-Package', '!javax.xml.*', "*"
+	}
+}
+
 task(zwaveListen, dependsOn: 'classes', type: JavaExec) {
+	group = 'zwave'
+	description = 'Listen on Z-Wave interface and write output to console'
 	main = 'net.rauros.jzwave.junit.TestEnumerate'
 	classpath = sourceSets.main.runtimeClasspath + sourceSets.test.runtimeClasspath
-	args "$transport"
+	args project.hasProperty('transport') ? project.transport : 'x'
 }
-*/
