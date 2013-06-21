@@ -22,18 +22,18 @@ package net.rauros.jzwave.core;
 
 public interface ZWaveConstants
 {
-	public static final byte SOF = 0x01;
-	public static final byte ACK = 0x06;
-	public static final byte NAK = 0x15;
-	public static final byte CAN = 0x18;
+	byte SOF = 0x01;
+	byte ACK = 0x06;
+	byte NAK = 0x15;
+	byte CAN = 0x18;
 	
-	public static byte NODE_BROADCAST = (byte)0xff;
+	byte NODE_BROADCAST = (byte)0xff;
 
-	public static byte UPDATE_STATE_NODE_INFO_RECEIVED = (byte)0x84;
-	public static byte UPDATE_STATE_NODE_INFO_REQ_FAILED = (byte)0x81;
+	byte UPDATE_STATE_NODE_INFO_RECEIVED = (byte)0x84;
+	byte UPDATE_STATE_NODE_INFO_REQ_FAILED = (byte)0x81;
 
-	public static byte TRANSMIT_COMPLETE_OK = 0x00;
-	public static byte TRANSMIT_COMPLETE_NO_ACK = 0x01;
-	public static byte TRANSMIT_COMPLETE_FAIL = 0x02;
-	public static byte TRANSMIT_COMPLETE_NOROUTE = 0x04;
+	byte TRANSMIT_COMPLETE_OK = 0x00;
+	byte TRANSMIT_COMPLETE_NO_ACK = 0x01;
+	byte TRANSMIT_COMPLETE_FAIL = 0x02;
+	byte TRANSMIT_COMPLETE_NOROUTE = 0x04;
 }
