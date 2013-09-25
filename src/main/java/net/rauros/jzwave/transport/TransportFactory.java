@@ -60,7 +60,7 @@ public class TransportFactory
 		{
 			try
 			{
-				transport = new SerialTransport(transportURI.getHost());
+                transport = new SerialTransport(transportURI.getPath());
 			}
 			catch(Exception e)
 			{
