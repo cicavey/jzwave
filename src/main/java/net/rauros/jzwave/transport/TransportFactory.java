@@ -23,6 +23,21 @@ package net.rauros.jzwave.transport;
 import java.net.URI;
 import java.net.URISyntaxException;
 
+/**
+ * Create a new transport for connection to a Z-Wave controller.<br/>
+ * Examples:<br/>
+ * <dl>
+ * <dt>Socket transport (scheme: socket, uses host and port, double slashes)</dt>
+ * <dd>socket://HOSTNAME[:PORT], socket://myhost:1234</dd>
+ * <dt>Serial transport (scheme: serial, uses path of URI, single or triple
+ * slash - NEVER DOUBLE)</dt>
+ * <dd>serial:/DEVICE, serial:///DEVICE, serial:/COM1, serial:/dev/ttyUSB0,
+ * serial:///dev/ttyUSB0</dd>
+ * </dl>
+ * 
+ * @author cicavey
+ * 
+ */
 public class TransportFactory
 {
 	private TransportFactory()
@@ -60,7 +75,7 @@ public class TransportFactory
 		{
 			try
 			{
-                transport = new SerialTransport(transportURI.getPath());
+				transport = new SerialTransport(transportURI.getPath());
 			}
 			catch(Exception e)
 			{

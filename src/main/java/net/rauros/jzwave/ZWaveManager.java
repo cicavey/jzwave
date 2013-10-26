@@ -82,16 +82,37 @@ public class ZWaveManager
 
 	private int controllerId = -1;
 
+	/**
+	 * Create a new ZWaveManager using device identified by given String(URI).
+	 * See {@link net.rauros.jzwave.transport.TransportFactory}
+	 * 
+	 * @param transportURIString
+	 *            device URI string
+	 */
 	public ZWaveManager(String transportURIString)
 	{
 		this(TransportFactory.create(transportURIString));
 	}
 
+	/**
+	 * Create a new ZWaveManager using device identified by given String(URI).
+	 * See {@link net.rauros.jzwave.transport.TransportFactory}
+	 * 
+	 * @param transportURI
+	 *            device URI
+	 */
 	public ZWaveManager(URI transportURI)
 	{
 		this(TransportFactory.create(transportURI));
 	}
 
+	/**
+	 * Create a new ZWaveManager using device transport
+	 * See {@link net.rauros.jzwave.transport.TransportFactory}
+	 * 
+	 * @param transport
+	 *            transport instance
+	 */
 	public ZWaveManager(Transport transport)
 	{
 		this.transport = transport;
