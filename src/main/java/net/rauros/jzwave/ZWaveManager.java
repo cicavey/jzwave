@@ -37,17 +37,16 @@ import net.rauros.jzwave.config.Config;
 import net.rauros.jzwave.config.Manufacturers;
 import net.rauros.jzwave.core.CommandClass;
 import net.rauros.jzwave.core.CommandFunction;
+import net.rauros.jzwave.core.CommandFunction.SENSOR_MULTILEVEL;
 import net.rauros.jzwave.core.ControllerCapabilities;
 import net.rauros.jzwave.core.Function;
 import net.rauros.jzwave.core.LibraryType;
 import net.rauros.jzwave.core.Message;
+import net.rauros.jzwave.core.Message.MsgType;
 import net.rauros.jzwave.core.Node;
-import net.rauros.jzwave.core.NodeListener;
 import net.rauros.jzwave.core.SensorType;
 import net.rauros.jzwave.core.SensorValue;
 import net.rauros.jzwave.core.ZWaveConstants;
-import net.rauros.jzwave.core.CommandFunction.SENSOR_MULTILEVEL;
-import net.rauros.jzwave.core.Message.MsgType;
 import net.rauros.jzwave.core.messages.MessageFactory;
 import net.rauros.jzwave.core.messages.request.ZWSendData;
 import net.rauros.jzwave.core.messages.response.ZWMemoryGetID;
@@ -63,6 +62,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.eventbus.EventBus;
 import com.google.common.util.concurrent.ListenableFuture;
 
 public class ZWaveManager
@@ -78,13 +78,12 @@ public class ZWaveManager
 	private Map<Integer, Node> nodes = new LinkedHashMap<>();
 	private Transport transport;
 
-	private List<NodeListener> nodeListeners = new ArrayList<>();
-
 	private int controllerId = -1;
 
+	private EventBus eventBus = new EventBus(this.getClass().getName());
+
 	/**
-	 * Create a new ZWaveManager using device identified by given String(URI).
-	 * See {@link net.rauros.jzwave.transport.TransportFactory}
+	 * Create a new ZWaveManager using device identified by given String(URI). See {@link net.rauros.jzwave.transport.TransportFactory}
 	 * 
 	 * @param transportURIString
 	 *            device URI string
@@ -95,8 +94,7 @@ public class ZWaveManager
 	}
 
 	/**
-	 * Create a new ZWaveManager using device identified by given String(URI).
-	 * See {@link net.rauros.jzwave.transport.TransportFactory}
+	 * Create a new ZWaveManager using device identified by given String(URI). See {@link net.rauros.jzwave.transport.TransportFactory}
 	 * 
 	 * @param transportURI
 	 *            device URI
@@ -107,8 +105,7 @@ public class ZWaveManager
 	}
 
 	/**
-	 * Create a new ZWaveManager using device transport
-	 * See {@link net.rauros.jzwave.transport.TransportFactory}
+	 * Create a new ZWaveManager using device transport See {@link net.rauros.jzwave.transport.TransportFactory}
 	 * 
 	 * @param transport
 	 *            transport instance
@@ -134,8 +131,7 @@ public class ZWaveManager
 	}
 
 	/**
-	 * Execute several important commands to get basic capabilities of the ZWave
-	 * network
+	 * Execute several important commands to get basic capabilities of the ZWave network
 	 */
 	protected void bootstrap()
 	{
@@ -147,18 +143,18 @@ public class ZWaveManager
 		prepareJobAndWait(new Message(MsgType.REQUEST, Function.SERIAL_API_GET_INIT_DATA));
 
 		// Used the reported ids to query for actual nodes with details
-		for(Integer reportedNodeId : reportedNodeIds)
+		for (Integer reportedNodeId : reportedNodeIds)
 		{
 			prepareJobAndWait(new Message(MsgType.REQUEST, Function.ZW_GET_NODE_PROTOCOL_INFO, reportedNodeId));
-			if(reportedNodeId != controllerId)
+			if (reportedNodeId != controllerId)
 			{
 				prepareJobAndWait(new Message(MsgType.REQUEST, Function.ZW_REQUEST_NODE_INFO, reportedNodeId));
 			}
 		}
 
-		for(Integer reportedNodeId : reportedNodeIds)
+		for (Integer reportedNodeId : reportedNodeIds)
 		{
-			if(reportedNodeId != controllerId)
+			if (reportedNodeId != controllerId)
 			{
 				prepareJob(new ZWSendData(reportedNodeId, CommandClass.MANUFACTURER_SPECIFIC, CommandFunction.MANUFACTURER_SPECIFIC.GET), true, true);
 			}
@@ -230,12 +226,12 @@ public class ZWaveManager
 
 	protected byte[] explode(int value)
 	{
-		return new byte[] { (byte)(value >> 24 & 0xFF), (byte)(value >> 16 & 0xFF), (byte)(value >> 8 & 0xFF), (byte)(value >> 0 & 0xFF) };
+		return new byte[] { (byte) (value >> 24 & 0xFF), (byte) (value >> 16 & 0xFF), (byte) (value >> 8 & 0xFF), (byte) (value >> 0 & 0xFF) };
 	}
 
 	public synchronized void stop()
 	{
-		if(ioRunnable != null && ioThread != null)
+		if (ioRunnable != null && ioThread != null)
 		{
 			ioRunnable.setRunning(false);
 			try
@@ -245,7 +241,7 @@ public class ZWaveManager
 				ioThread = null;
 				ioRunnable = null;
 			}
-			catch(InterruptedException e)
+			catch (InterruptedException e)
 			{
 				e.printStackTrace();
 			}
@@ -259,11 +255,11 @@ public class ZWaveManager
 		protected void resendNAck()
 		{
 			List<Job> jobsAwaitingAck = getJobsAwaitingAck();
-			if(jobsAwaitingAck.size() > 1)
+			if (jobsAwaitingAck.size() > 1)
 			{
 				log.error("Multiple jobs ({}) awaiting ACK", jobsAwaitingAck.size());
 			}
-			else if(jobsAwaitingAck.size() == 1)
+			else if (jobsAwaitingAck.size() == 1)
 			{
 				jobsAwaitingAck.get(0).sent = false;
 			}
@@ -289,12 +285,12 @@ public class ZWaveManager
 				is = transport.getInputStream();
 				os = transport.getOutputStream();
 
-				while(running)
+				while (running)
 				{
-					if(is.available() > 0)
+					if (is.available() > 0)
 					{
 						int first = is.read();
-						switch(first)
+						switch (first)
 						{
 							case ZWaveConstants.ACK:
 
@@ -302,18 +298,18 @@ public class ZWaveManager
 
 								Job ackJob = null;
 
-								for(Job job : jobQueue)
+								for (Job job : jobQueue)
 								{
-									if(job.sent && job.awaitingAck)
+									if (job.sent && job.awaitingAck)
 									{
 										ackJob = job;
 										break;
 									}
 								}
 
-								if(ackJob != null)
+								if (ackJob != null)
 								{
-									if(!ackJob.awaitingResponse && !ackJob.awaitingCallback)
+									if (!ackJob.awaitingResponse && !ackJob.awaitingCallback)
 									{
 										removeJob(ackJob);
 									}
@@ -326,7 +322,7 @@ public class ZWaveManager
 								break;
 							case ZWaveConstants.SOF:
 
-								if(anyJobsAwaitingAck())
+								if (anyJobsAwaitingAck())
 								{
 									resendNAck();
 								}
@@ -335,7 +331,7 @@ public class ZWaveManager
 
 								byte buffer[] = new byte[length + 2];
 								buffer[0] = ZWaveConstants.SOF;
-								buffer[1] = (byte)length;
+								buffer[1] = (byte) length;
 
 								// Read "length" bytes from the input, handling
 								// the case when it
@@ -345,13 +341,13 @@ public class ZWaveManager
 								{
 									totalRead += is.read(buffer, 2 + totalRead, length - totalRead);
 								}
-								while(totalRead < length);
+								while (totalRead < length);
 
 								// // Verify checksum
 								byte calculatedChecksum = Message.calculateChecksum(buffer, 1, buffer.length - 2);
 								byte receivedChecksum = buffer[buffer.length - 1];
 
-								if(calculatedChecksum != receivedChecksum)
+								if (calculatedChecksum != receivedChecksum)
 								{
 									// Checksum mismatch
 									System.err.printf("Checksum mismatch! calc(%02x) != recv(%02x)\n", calculatedChecksum, receivedChecksum);
@@ -387,11 +383,11 @@ public class ZWaveManager
 					{
 						Job nextJob = null;
 
-						for(Job job : jobQueue)
+						for (Job job : jobQueue)
 						{
-							if(job.sent)
+							if (job.sent)
 							{
-								if(job.awaitingAck || job.awaitingResponse || job.awaitingCallback)
+								if (job.awaitingAck || job.awaitingResponse || job.awaitingCallback)
 								{
 									break;
 								}
@@ -403,7 +399,7 @@ public class ZWaveManager
 							}
 						}
 
-						if(nextJob != null)
+						if (nextJob != null)
 						{
 							nextJob.sent = true;
 							nextJob.sendCount++;
@@ -418,7 +414,7 @@ public class ZWaveManager
 					{
 						Thread.sleep(75);
 					}
-					catch(Exception e)
+					catch (Exception e)
 					{
 						e.printStackTrace();
 					}
@@ -426,7 +422,7 @@ public class ZWaveManager
 
 				transport.close();
 			}
-			catch(IOException e1)
+			catch (IOException e1)
 			{
 				running = false;
 				e1.printStackTrace();
@@ -447,11 +443,11 @@ public class ZWaveManager
 		{
 			future.get();
 		}
-		catch(InterruptedException e)
+		catch (InterruptedException e)
 		{
 			e.printStackTrace();
 		}
-		catch(ExecutionException e)
+		catch (ExecutionException e)
 		{
 			e.printStackTrace();
 		}
@@ -468,8 +464,7 @@ public class ZWaveManager
 	}
 
 	/**
-	 * Prepare a job with the given parameters and enqueue the job(message) for
-	 * transmission
+	 * Prepare a job with the given parameters and enqueue the job(message) for transmission
 	 * 
 	 * @param message
 	 * @param response
@@ -508,15 +503,15 @@ public class ZWaveManager
 
 	protected boolean anyJobsAwaitingAck()
 	{
-		for(Job job : jobQueue)
-			if(job.sent && job.awaitingAck)
+		for (Job job : jobQueue)
+			if (job.sent && job.awaitingAck)
 				return true;
 		return false;
 	}
 
 	protected void decodeMessage(Message inputData)
 	{
-		switch(inputData.getType())
+		switch (inputData.getType())
 		{
 			case REQUEST:
 				handleRequest(inputData);
@@ -533,18 +528,18 @@ public class ZWaveManager
 
 		Job callbackJob = null;
 
-		if(jobsAwaitingCallback.size() > 1)
+		if (jobsAwaitingCallback.size() > 1)
 		{
 			log.error("Multiple jobs ({}) waiting for the same callback!", jobsAwaitingCallback.size());
 		}
-		else if(jobsAwaitingCallback.size() == 1)
+		else if (jobsAwaitingCallback.size() == 1)
 		{
 			callbackJob = jobsAwaitingCallback.get(0);
 		}
 
 		boolean doRemoveJob = false;
 
-		switch(request.getFunction())
+		switch (request.getFunction())
 		{
 			case ZW_SEND_DATA:
 			{
@@ -552,11 +547,11 @@ public class ZWaveManager
 
 				byte[] payload = request.getPayload();
 
-				if(payload[1] == 1)
+				if (payload[1] == 1)
 				{
 					System.err.printf("ZW_SEND response, not delivered, with callback %02x\n", payload[0]);
 				}
-				else if(payload[1] == 0)
+				else if (payload[1] == 0)
 				{
 					System.err.printf("ZW_SEND response with callback %02x\n", payload[0]);
 				}
@@ -571,7 +566,7 @@ public class ZWaveManager
 			{
 				byte[] payload = request.getPayload();
 
-				if(payload[0] == ZWaveConstants.UPDATE_STATE_NODE_INFO_RECEIVED)
+				if (payload[0] == ZWaveConstants.UPDATE_STATE_NODE_INFO_RECEIVED)
 				{
 					int nodeId = unsignedByte(payload[1]);
 					Node node = nodes.get(nodeId);
@@ -580,13 +575,13 @@ public class ZWaveManager
 
 					boolean mark = false;
 					int length = payload[2] - 3; // offset
-					for(int i = 0; i < length; i++)
+					for (int i = 0; i < length; i++)
 					{
 						CommandClass cc = CommandClass.byByteValue(payload[6 + i]);
 
 						// Classes that come after "MARK" are classes that can
 						// be controlled by this device
-						if(cc == CommandClass.MARK)
+						if (cc == CommandClass.MARK)
 						{
 							mark = true;
 							log.debug(" Begin controllable classes:");
@@ -595,7 +590,7 @@ public class ZWaveManager
 						{
 							log.debug(" {}", cc);
 
-							if(!mark)
+							if (!mark)
 							{
 								node.addSupportedCommandClass(cc);
 							}
@@ -627,16 +622,16 @@ public class ZWaveManager
 				CommandClass cc = CommandClass.byByteValue(payload[3]);
 				log.info("Received application command class, {}", cc);
 
-				if(cc == null)
+				if (cc == null)
 				{
 					break;
 				}
 
-				switch(cc)
+				switch (cc)
 				{
 					case BASIC:
 					{
-						switch(CommandFunction.BASIC.byByteValue(payload[4]))
+						switch (CommandFunction.BASIC.byByteValue(payload[4]))
 						{
 						// R: 01 09 00 04 00 05 03 80 03 64 13
 							case REPORT:
@@ -654,7 +649,7 @@ public class ZWaveManager
 					}
 					case SWITCH_BINARY:
 					{
-						switch(CommandFunction.BASIC.byByteValue(payload[4]))
+						switch (CommandFunction.BASIC.byByteValue(payload[4]))
 						{
 							case REPORT:
 							{
@@ -669,7 +664,7 @@ public class ZWaveManager
 					}
 					case VERSION:
 					{
-						switch(CommandFunction.VERSION.byByteValue(payload[4]))
+						switch (CommandFunction.VERSION.byByteValue(payload[4]))
 						{
 							case REPORT:
 							{
@@ -695,7 +690,7 @@ public class ZWaveManager
 					}
 					case MANUFACTURER_SPECIFIC:
 					{
-						switch(CommandFunction.MANUFACTURER_SPECIFIC.byByteValue(payload[4]))
+						switch (CommandFunction.MANUFACTURER_SPECIFIC.byByteValue(payload[4]))
 						{
 							case GET:
 							{
@@ -717,7 +712,7 @@ public class ZWaveManager
 					}
 					case BATTERY:
 					{
-						switch(CommandFunction.BATTERY.byByteValue(payload[4]))
+						switch (CommandFunction.BATTERY.byByteValue(payload[4]))
 						{
 							case GET:
 							{
@@ -730,7 +725,7 @@ public class ZWaveManager
 								byte level = payload[5];
 
 								// Devices send 0xFF for low battery warning
-								if(level == (byte)0xff)
+								if (level == (byte) 0xff)
 								{
 									level = 0;
 								}
@@ -738,7 +733,7 @@ public class ZWaveManager
 								// mask off unsigned to get the proper value
 								int batteryLevel = unsignedByte(level);
 
-								if(node != null)
+								if (node != null)
 								{
 									node.setBatteryLevel(batteryLevel);
 								}
@@ -753,7 +748,7 @@ public class ZWaveManager
 					}
 					case ASSOCIATION:
 					{
-						switch(CommandFunction.ASSOCIATION.byByteValue(payload[4]))
+						switch (CommandFunction.ASSOCIATION.byByteValue(payload[4]))
 						{
 							case GROUPINGS_REPORT:
 							{
@@ -781,7 +776,7 @@ public class ZWaveManager
 
 					case WAKE_UP:
 					{
-						switch(CommandFunction.WAKE_UP.byByteValue(payload[4]))
+						switch (CommandFunction.WAKE_UP.byByteValue(payload[4]))
 						{
 							case INTERVAL_REPORT:
 							{
@@ -796,8 +791,8 @@ public class ZWaveManager
 								// if(targetNodeId != controllerId)
 								// {
 								int wi = 60;
-								prepareJob(new ZWSendData(nodeId, CommandClass.WAKE_UP, CommandFunction.WAKE_UP.INTERVAL_SET, (byte)((wi >> 16) & 0xff),
-										(byte)((wi >> 8) & 0xff), (byte)((wi) & 0xff), (byte)controllerId), true, true);
+								prepareJob(new ZWSendData(nodeId, CommandClass.WAKE_UP, CommandFunction.WAKE_UP.INTERVAL_SET, (byte) ((wi >> 16) & 0xff),
+										(byte) ((wi >> 8) & 0xff), (byte) ((wi) & 0xff), (byte) controllerId), true, true);
 								// }
 
 								break;
@@ -813,7 +808,7 @@ public class ZWaveManager
 
 					case CONFIGURATION:
 					{
-						switch(CommandFunction.CONFIGURATION.byByteValue(payload[4]))
+						switch (CommandFunction.CONFIGURATION.byByteValue(payload[4]))
 						{
 							case REPORT:
 							{
@@ -821,7 +816,7 @@ public class ZWaveManager
 								int size = payload[6] & 0x7;
 
 								int value = 0;
-								for(int i = 0; i < size; i++)
+								for (int i = 0; i < size; i++)
 								{
 									value <<= 8;
 									value |= unsignedByte(payload[7 + i]);
@@ -837,7 +832,7 @@ public class ZWaveManager
 
 					case SENSOR_BINARY:
 					{
-						switch(CommandFunction.SENSOR_BINARY.byByteValue(payload[4]))
+						switch (CommandFunction.SENSOR_BINARY.byByteValue(payload[4]))
 						{
 							case REPORT:
 							{
@@ -851,12 +846,12 @@ public class ZWaveManager
 					case SENSOR_MULTILEVEL:
 					{
 						SENSOR_MULTILEVEL subfunc = CommandFunction.SENSOR_MULTILEVEL.byByteValue(payload[4]);
-						if(subfunc == null)
+						if (subfunc == null)
 						{
 							System.err.println(">>>>>>>>>>>>>>>>>>>>>>> " + payload[4]);
 							break;
 						}
-						switch(subfunc)
+						switch (subfunc)
 						{
 							case REPORT:
 							{
@@ -869,12 +864,12 @@ public class ZWaveManager
 								int scale = (payload[6] & 0x18) >> 3;
 
 								int tempValue = 0;
-								for(int i = 0; i < size; i++)
+								for (int i = 0; i < size; i++)
 								{
 									tempValue <<= 8;
 									tempValue |= unsignedByte(payload[7 + i]);
 								}
-								if((payload[7] & 0x80) != 0 && size < 4)
+								if ((payload[7] & 0x80) != 0 && size < 4)
 								{
 									tempValue = -tempValue;
 								}
@@ -884,11 +879,9 @@ public class ZWaveManager
 								log.debug(String.format("Got report from node %d, sensor %s, size %d, precision %d, scale %d - value = %s%s", nodeId, type,
 										size, precision, scale, number, type.units(scale)));
 
-								if(node != null)
+								if (node != null)
 								{
 									node.setSensorValue(new SensorValue(type, scale, number));
-
-									fireNodeChanged(node);
 								}
 								else
 								{
@@ -906,34 +899,15 @@ public class ZWaveManager
 			}
 		}
 
-		if(doRemoveJob && callbackJob != null)
+		if (doRemoveJob && callbackJob != null)
 		{
 			removeJob(callbackJob);
 		}
 	}
 
-	public void addNodeListener(NodeListener nl)
+	public EventBus getEventBus()
 	{
-		if(nl != null && !nodeListeners.contains(nl))
-		{
-			nodeListeners.add(nl);
-		}
-	}
-
-	public void removeNodeListener(NodeListener nl)
-	{
-		if(nl != null)
-		{
-			nodeListeners.remove(nl);
-		}
-	}
-
-	protected void fireNodeChanged(Node node)
-	{
-		for(NodeListener nl : nodeListeners)
-		{
-			nl.nodeChanged(this, node);
-		}
+		return eventBus;
 	}
 
 	protected int unsignedByte(byte b)
@@ -944,16 +918,16 @@ public class ZWaveManager
 	protected void handleResponse(Message response)
 	{
 		Job sourceJob = null;
-		for(Job job : jobQueue)
+		for (Job job : jobQueue)
 		{
-			if(job.awaitingResponse)
+			if (job.awaitingResponse)
 			{
 				sourceJob = job;
 				break;
 			}
 		}
 
-		switch(response.getFunction())
+		switch (response.getFunction())
 		{
 			case APPLICATION_COMMAND_HANDLER:
 			{
@@ -996,7 +970,7 @@ public class ZWaveManager
 			{
 				byte[] payload = response.getPayload();
 
-				if(payload[0] > 0)
+				if (payload[0] > 0)
 				{
 					System.err.printf("SUC ID = %d\n", payload[0]);
 				}
@@ -1010,7 +984,7 @@ public class ZWaveManager
 
 			case ZW_MEMORY_GET_ID:
 			{
-				ZWMemoryGetID memMsg = (ZWMemoryGetID)response;
+				ZWMemoryGetID memMsg = (ZWMemoryGetID) response;
 				controllerId = memMsg.getNodeID();
 				break;
 			}
@@ -1040,11 +1014,11 @@ public class ZWaveManager
 				boolean pri_controller = !sec_controller;
 
 				// mask off the reserved bits
-				byte reserved_bits = (byte)(payload[1] & 0b11111000);
+				byte reserved_bits = (byte) (payload[1] & 0b11111000);
 
 				byte chipMaj = 0, chipMin = 0;
 
-				if(payload[2] == 29)
+				if (payload[2] == 29)
 				{
 					reportedNodeIds.addAll(BitSets.getSetBits(BitSets.fromByteArray(payload, 3, 29), 1));
 					chipMaj = payload[3 + 29];
@@ -1073,14 +1047,16 @@ public class ZWaveManager
 			{
 				byte[] payload = response.getPayload();
 
-				if(payload[4] != 0)
+				if (payload[4] != 0)
 				{
 					int nodeId = sourceJob.message.getTarget();
 
 					Node node = Node.from(nodeId, payload);
-					System.err.println(node);
+					node.setEventBus(eventBus);
 
 					nodes.put(node.getNodeId(), node);
+
+					eventBus.post(new NodeAddedEvent(node));
 				}
 				else
 				{
@@ -1093,7 +1069,7 @@ public class ZWaveManager
 			{
 				byte[] payload = response.getPayload();
 
-				if(payload[0] != 0)
+				if (payload[0] != 0)
 				{
 					log.debug("ZW_REQUEST_NODE_INFO successful to node {}", response.getTarget());
 				}
@@ -1113,7 +1089,7 @@ public class ZWaveManager
 		sourceJob.awaitingResponse = false;
 
 		// if no callback needed
-		if(!sourceJob.awaitingCallback)
+		if (!sourceJob.awaitingCallback)
 		{
 			removeJob(sourceJob);
 		}

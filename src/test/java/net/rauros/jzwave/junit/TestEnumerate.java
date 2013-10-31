@@ -20,24 +20,33 @@
  */
 package net.rauros.jzwave.junit;
 
+import java.beans.PropertyChangeEvent;
+
+import net.rauros.jzwave.NodeAddedEvent;
 import net.rauros.jzwave.ZWaveManager;
-import net.rauros.jzwave.core.Node;
-import net.rauros.jzwave.core.NodeListener;
+
+import com.google.common.eventbus.Subscribe;
 
 public class TestEnumerate
 {
 	public static void main(String[] args)
 	{
-		if(args.length > 0)
+		if (args.length > 0)
 		{
 			ZWaveManager zwm = new ZWaveManager(args[0]);
 
-			zwm.addNodeListener(new NodeListener()
+			zwm.getEventBus().register(new Object()
 			{
-				@Override
-				public void nodeChanged(ZWaveManager manager, Node node)
+				@Subscribe
+				public void nodeAdded(NodeAddedEvent nae)
 				{
-					System.err.println(">>>>>> NODE CHANGED: " + node);
+					System.err.println("TestEnumerate.main(...).new Object() {...}.nodeAdded()" + nae);
+				}
+
+				@Subscribe
+				public void nodeChanged(PropertyChangeEvent pce)
+				{
+					System.err.println("TestEnumerate.main(...).new Object() {...}.nodeChanged()" + pce);
 				}
 			});
 

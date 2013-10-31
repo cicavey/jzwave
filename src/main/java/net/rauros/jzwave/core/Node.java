@@ -20,8 +20,11 @@
  */
 package net.rauros.jzwave.core;
 
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeSupport;
 import java.io.Serializable;
 import java.util.BitSet;
+import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
@@ -32,6 +35,7 @@ import net.rauros.jzwave.utils.BitEnumSets;
 import net.rauros.jzwave.utils.Enums;
 
 import com.google.common.base.Objects;
+import com.google.common.eventbus.EventBus;
 
 public class Node implements Serializable
 {
@@ -41,6 +45,7 @@ public class Node implements Serializable
 
 	protected EnumSet<CommandClass> supportedCommandClasses = EnumSet.noneOf(CommandClass.class);
 	protected EnumSet<CommandClass> controllableCommandClasses = EnumSet.noneOf(CommandClass.class);
+	protected EnumMap<CommandClass, Object> supportedCommandClassState = new EnumMap<>(CommandClass.class);
 
 	protected BitSet neighbors = new BitSet(256);
 
@@ -62,7 +67,9 @@ public class Node implements Serializable
 
 	protected Map<SensorType, SensorValue> sensorValues = new HashMap<>();
 
-	public Node(int nodeId, boolean listening, boolean routing, int maxBaudRate, int version, EnumSet<Security> security, BasicType basicType,
+	protected EventBus eventBus;
+
+	private Node(int nodeId, boolean listening, boolean routing, int maxBaudRate, int version, EnumSet<Security> security, BasicType basicType,
 			GenericType genericType, byte specificType)
 	{
 		this.nodeId = nodeId;
@@ -101,7 +108,7 @@ public class Node implements Serializable
 
 		int maxBaudRate = 9600;
 
-		if((data[offset] & baudRateMask) == baudRate_40kbit)
+		if ((data[offset] & baudRateMask) == baudRate_40kbit)
 		{
 			maxBaudRate = 40000;
 		}
@@ -118,6 +125,24 @@ public class Node implements Serializable
 		byte specificType = data[offset + 5];
 
 		return new Node(nodeId, listening, routing, maxBaudRate, version, security, basicType, genericType, specificType);
+	}
+
+	public EventBus getEventBus()
+	{
+		return eventBus;
+	}
+
+	public void setEventBus(EventBus eventBus)
+	{
+		this.eventBus = eventBus;
+	}
+
+	protected void post(Object obj)
+	{
+		if (eventBus != null)
+		{
+			eventBus.post(obj);
+		}
 	}
 
 	public int getNodeId()
@@ -192,12 +217,35 @@ public class Node implements Serializable
 
 	public void setBatteryLevel(int batteryLevel)
 	{
-		this.batteryLevel = batteryLevel;
+		if (this.batteryLevel != batteryLevel)
+		{
+			PropertyChangeEvent pce = new PropertyChangeEvent(this, "batteryLevel", this.batteryLevel, batteryLevel);
+			this.batteryLevel = batteryLevel;
+			post(pce);
+		}
 	}
 
-	public void setSensorValue(SensorValue value)
+	public void setSensorValue(SensorValue sv)
 	{
-		sensorValues.put(value.getType(), value);
+		if (sv == null)
+		{
+			return;
+		}
+
+		boolean changed = true;
+
+		SensorValue oldsv = sensorValues.get(sv.getType());
+		if (oldsv != null)
+		{
+			changed = !oldsv.getValue().equals(sv.getValue());
+		}
+
+		sensorValues.put(sv.getType(), sv);
+
+		if (changed)
+		{
+			post(new PropertyChangeEvent(this, "sensorValue", oldsv, sv));
+		}
 	}
 
 	public SensorValue getSensorValue(SensorType type)
@@ -218,6 +266,11 @@ public class Node implements Serializable
 	public void addControllableCommandClass(CommandClass cc)
 	{
 		controllableCommandClasses.add(cc);
+	}
+
+	public void updateCommandClassState(CommandClass cc, Object state)
+	{
+		supportedCommandClassState.put(cc, state);
 	}
 
 	public String toString()

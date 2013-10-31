@@ -18,11 +18,21 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with jzwave.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.rauros.jzwave.core;
+package net.rauros.jzwave;
 
-import net.rauros.jzwave.ZWaveManager;
+import net.rauros.jzwave.core.Node;
 
-public interface NodeListener
+public class NodeAddedEvent
 {
-	void nodeChanged(ZWaveManager manager, Node node);
+	protected Node node;
+
+	public NodeAddedEvent(Node node)
+	{
+		this.node = node;
+	}
+
+	public Node getNode()
+	{
+		return node;
+	}
 }
