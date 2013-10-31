@@ -87,8 +87,10 @@ public class Node implements Serializable
 	private static byte    baudRateMask = (byte)0b00111000;
 	private static byte     versionMask = (byte)0b00000111;
 	
+	@SuppressWarnings("unused")
 	private static byte   baudRate_unk1 = (byte)0b00001000;
 	private static byte baudRate_40kbit = (byte)0b00010000;
+	@SuppressWarnings("unused")
 	private static byte   baudRate_unk2 = (byte)0b00100000;
 	//@formatter:on
 
