@@ -1,5 +1,6 @@
 version = '0.0.1'
 group = 'net.rauros.jzwave'
+
 ext.description = "Java Z-Wave"
 ext.author = 'Chris Cavey'
 ext.email = 'chris-jzwave@rauros.net'
@@ -9,14 +10,16 @@ apply plugin: 'groovy'
 apply plugin: 'java'
 apply plugin: 'osgi'
 apply plugin: 'eclipse'
+apply plugin: 'maven'
 
 buildscript {
 	repositories {
+		mavenLocal()
 		mavenCentral()
 	}
 
 	dependencies {
-		classpath 'nl.javadude.gradle.plugins:license-gradle-plugin:0.5.0'
+		classpath 'nl.javadude.gradle.plugins:license-gradle-plugin:+'
 	}
 }
 
