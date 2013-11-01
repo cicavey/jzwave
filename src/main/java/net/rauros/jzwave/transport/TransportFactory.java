@@ -29,10 +29,8 @@ import java.net.URISyntaxException;
  * <dl>
  * <dt>Socket transport (scheme: socket, uses host and port, double slashes)</dt>
  * <dd>socket://HOSTNAME[:PORT], socket://myhost:1234</dd>
- * <dt>Serial transport (scheme: serial, uses path of URI, single or triple
- * slash - NEVER DOUBLE)</dt>
- * <dd>serial:/DEVICE, serial:///DEVICE, serial:/COM1, serial:/dev/ttyUSB0,
- * serial:///dev/ttyUSB0</dd>
+ * <dt>Serial transport (scheme: serial, slashes [1,3])</dt>
+ * <dd>serial:/DEVICE, serial://DEVICE, serial:///DEVICE, serial:/COM1, serial://COM1, serial:/dev/ttyUSB0, serial:///dev/ttyUSB0</dd>
  * </dl>
  * 
  * @author cicavey
@@ -50,7 +48,7 @@ public class TransportFactory
 		{
 			return create(new URI(transportURIString));
 		}
-		catch(URISyntaxException e)
+		catch (URISyntaxException e)
 		{
 			throw new TransportException("Unable to create URI for transport", e);
 		}
@@ -60,24 +58,47 @@ public class TransportFactory
 	{
 		Transport transport = null;
 
-		if("socket".equalsIgnoreCase(transportURI.getScheme()))
+		if ("socket".equalsIgnoreCase(transportURI.getScheme()))
 		{
 			try
 			{
 				transport = new SocketTransport(transportURI.getHost(), transportURI.getPort());
 			}
-			catch(Exception e)
+			catch (Exception e)
 			{
 				throw new TransportException("Unable to create SocketTransport", e);
 			}
 		}
-		else if("serial".equalsIgnoreCase(transportURI.getScheme()))
+		else if ("serial".equalsIgnoreCase(transportURI.getScheme()))
 		{
+			String portPath = transportURI.getPath();
+
+			String osName = System.getProperty("os.name").toLowerCase();
+			if (osName.startsWith("windows"))
+			{
+				if (portPath == null || portPath.isEmpty())
+				{
+					portPath = transportURI.getHost();
+				}
+
+				if (portPath.startsWith("/"))
+				{
+					portPath = portPath.substring(1);
+				}
+			}
+			else
+			{
+				if (transportURI.getHost() != null && transportURI.getPath() != null)
+				{
+					portPath = transportURI.getSchemeSpecificPart().substring(1);
+				}
+			}
+
 			try
 			{
-				transport = new SerialTransport(transportURI.getPath());
+				transport = new SerialTransport(portPath);
 			}
-			catch(Exception e)
+			catch (Exception e)
 			{
 				throw new TransportException("Unable to create SerialTransport", e);
 			}
